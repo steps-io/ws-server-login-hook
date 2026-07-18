@@ -1,6 +1,6 @@
-# Dzly Login Hook
+# ws Login Hook
 
-Laravel package for WhatsApp OTP login via [Dzly](https://app.dzly.ai).
+Laravel package for WhatsApp OTP login via [ws](https://ws.admin.octto.net).
 
 ## Installation
 
@@ -12,7 +12,7 @@ Add the following to your application's `composer.json`:
 "repositories": [
     {
         "type": "vcs",
-        "url": "https://github.com/tocaan/dzly-login-hook.git"
+        "url": "https://github.com/steps-io/ws-server-login-hook.git"  
     }
 ]
 ```
@@ -20,13 +20,13 @@ Add the following to your application's `composer.json`:
 ### 2. Require the package
 
 ```bash
-composer require tocaan/dzly-login-hook
+composer require steps/ws-login-hook
 ```
 
 ### 3. Publish the config
 
 ```bash
-php artisan vendor:publish --provider="WsServerLoginHook\Providers\WsServerLoginHookServiceProvider" --tag=config
+php artisan vendor:publish --provider="WsServerLoginHook\Providers\WsLoginHookServiceProvider" --tag=config
 ```
 
 ### 4. Run migrations
@@ -35,37 +35,37 @@ php artisan vendor:publish --provider="WsServerLoginHook\Providers\WsServerLogin
 php artisan migrate
 ```
 
-This creates the `dzly_hook_otp_requests` table.
+This creates the `ws_hook_otp_requests` table.
 
 ### 5. Environment variables
 
 Add the following to your `.env` file:
 
 ```env
-WHATSAPP_RECIVER_NUMBER="your dzly phone number"
-DZLY_BASE_URL="https://app.dzly.ai"
-DZLY_API_TOKEN="your token"
+WHATSAPP_RECIVER_NUMBER="your ws phone number"
+WS_BASE_URL="https://ws.admin.octto.net"
+WS_API_TOKEN="your token"
 ```
 
 | Variable                  | Description                                               |
 | ------------------------- | --------------------------------------------------------- |
-| `WHATSAPP_RECIVER_NUMBER` | Your Dzly WhatsApp receiver number (used by this package) |
-| `DZLY_BASE_URL`           | Dzly API base URL (used by `dzly/dzly-api`)               |
-| `DZLY_API_TOKEN`          | Your Dzly API token (used by `dzly/dzly-api`)             |
+| `WHATSAPP_RECIVER_NUMBER` | Your ws WhatsApp receiver number (used by this package) |
+| `WS_BASE_URL`           | ws API base URL               |
+| `WS_API_TOKEN`          | Your ws API token          |
 
-### 6. Register the Dzly webhook
+### 6. Register the ws webhook
 
-In the [Dzly webhooks dashboard](https://app.dzly.ai/developer-tools/webhooks), add a webhook that points to:
+In the [ws webhooks dashboard](https://ws.admin.octto.net/developer-tools/webhooks), add a webhook that points to:
 
 ```
-{{YOUR_PROJECT_URL}}/api/dzly-login-hook/dzly-webhook
+{{YOUR_PROJECT_URL}}/api/ws-login-hook/ws-webhook
 ```
 
 Replace `{{YOUR_PROJECT_URL}}` with your application's public URL (for example `https://example.com`).
 
 ### 7. Register supported models
 
-Open `config/dzly-login-hook.php` and map model keys to their classes:
+Open `config/ws-login-hook.php` and map model keys to their classes:
 
 ```php
 return [
@@ -77,22 +77,22 @@ return [
 ];
 ```
 
-The key (`user`) is used in the OTP request URL: `/api/dzly-login-hook/request-otp/{model}`.
+The key (`user`) is used in the OTP request URL: `/api/ws-login-hook/request-otp/{model}`.
 
 ### 8. Implement the `WsServerLoginHook` contract
 
-Each model listed in `supported_models` must implement `WsServerLoginHook\Contracts\WsServerLoginHook` and define `loggedInResponse`:
+Each model listed in `supported_models` must implement `Steps\WsLoginHook\Contracts\WsLoginHook` and define `loggedInResponse`:
 
 ```php
 <?php
 
 namespace App\Models;
 
-use WsServerLoginHook\Contracts\WsServerLoginHook;
+use Steps\WsLoginHook\Contracts\WsLoginHook;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Http\JsonResponse;
 
-class User extends Authenticatable implements WsServerLoginHook
+class User extends Authenticatable implements WsLoginHook
 {
     public static function loggedInResponse($phoneData): JsonResponse
     {
@@ -101,7 +101,7 @@ class User extends Authenticatable implements WsServerLoginHook
             ['name' => $phoneData['profile_name'] ?? null]
         );
 
-        $token = $user->createToken('dzly-login')->plainTextToken;
+        $token = $user->createToken('ws-login')->plainTextToken;
 
         return response()->json([
             'status' => 'success',
@@ -121,9 +121,9 @@ class User extends Authenticatable implements WsServerLoginHook
 ```php
 [
   "success" => true,
-  "phone_number" => "+96590000000",
-  "national_number" => "90000000",
-  "country_code" => "+965",
+  "phone_number" => "+20100000000",
+  "national_number" => "100000000",
+  "country_code" => "+20",
   "phone_object" => /* libphonenumber\PhoneNumber instance */,
   "profile_name" => "Mostafa Sewidan",
 ]
@@ -142,20 +142,20 @@ class User extends Authenticatable implements WsServerLoginHook
 
 | Method | URI                                        | Description                                                                 |
 | ------ | ------------------------------------------ | --------------------------------------------------------------------------- |
-| `POST` | `/api/dzly-login-hook/request-otp/{model}` | Generate an OTP and WhatsApp deep link for the given model key              |
-| `ANY`  | `/api/dzly-login-hook/dzly-webhook`        | Inbound Dzly webhook (OTP verification)                                     |
-| `POST` | `/api/dzly-login-hook/hook-otp-login`      | Complete login after OTP is verified; calls `loggedInResponse` on the model |
+| `POST` | `/api/ws-login-hook/request-otp/{model}` | Generate an OTP and WhatsApp deep link for the given model key              |
+| `ANY`  | `/api/ws-login-hook/ws-webhook`        | Inbound ws webhook (OTP verification)                                     |
+| `POST` | `/api/ws-login-hook/hook-otp-login`      | Complete login after OTP is verified; calls `loggedInResponse` on the model |
 
 ### Request OTP
 
-Generates (or refreshes) an OTP for the given model and returns a WhatsApp deep link the user taps to send the OTP back to your Dzly number.
+Generates (or refreshes) an OTP for the given model and returns a WhatsApp deep link the user taps to send the OTP back to your ws number.
 
-- **URL:** `POST /api/dzly-login-hook/request-otp/{model}`
+- **URL:** `POST /api/ws-login-hook/request-otp/{model}`
 - **URL parameters:**
 
 | Parameter | Required | Description                                                                 |
 | --------- | -------- | --------------------------------------------------------------------------- |
-| `model`   | yes      | A key from `supported_models` in `config/dzly-login-hook.php` (e.g. `user`) |
+| `model`   | yes      | A key from `supported_models` in `config/ws-login-hook.php` (e.g. `user`) |
 
 - **Body parameters:**
 
@@ -166,7 +166,7 @@ Generates (or refreshes) an OTP for the given model and returns a WhatsApp deep 
 - **Example request:**
 
 ```bash
-curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/request-otp/user" \
+curl -X POST "{{YOUR_PROJECT_URL}}/api/ws-login-hook/request-otp/user" \
   -H "Accept: application/json" \
   -d "serial_number=OPTIONAL_EXISTING_SERIAL"
 ```
@@ -183,7 +183,7 @@ curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/request-otp/user" \
     "serial_number": "eyJpdiI6...",
     "channel": "otp.5a1f...",
     "otp": "12",
-    "url": "https://wa.me/9665XXXXXXX?text=..."
+    "url": "https://wa.me/2012XXXXXXX?text=..."
   }
 }
 ```
@@ -196,26 +196,26 @@ curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/request-otp/user" \
 | `serial_number` | Session identifier; reuse it on subsequent calls and on login        |
 | `channel`       | Broadcast channel name to listen on for login status updates         |
 | `otp`           | The encrypted OTP embedded in the WhatsApp message                   |
-| `url`           | `wa.me` deep link the user opens to send the OTP to your Dzly number |
+| `url`           | `wa.me` deep link the user opens to send the OTP to your ws number |
 
-After the user sends the message, Dzly calls the `dzly-webhook` endpoint, which verifies the OTP and broadcasts an `OtpLoginStatusUpdated` event on `channel`.
+After the user sends the message, ws calls the `ws-webhook` endpoint, which verifies the OTP and broadcasts an `OtpLoginStatusUpdated` event on `channel`.
 
 ### Login
 
 Completes the login once the OTP has been verified via the webhook. Returns whatever your model's `loggedInResponse` returns.
 
-- **URL:** `POST /api/dzly-login-hook/hook-otp-login`
+- **URL:** `POST /api/ws-login-hook/hook-otp-login`
 - **Body parameters:**
 
 | Parameter       | Required | Description                                                                                    |
 | --------------- | -------- | ---------------------------------------------------------------------------------------------- |
-| `request_id`    | yes      | The `request_id` returned by the request-otp endpoint (must exist in `dzly_hook_otp_requests`) |
+| `request_id`    | yes      | The `request_id` returned by the request-otp endpoint (must exist in `ws_hook_otp_requests`) |
 | `serial_number` | yes      | The `serial_number` returned by the request-otp endpoint                                       |
 
 - **Example request:**
 
 ```bash
-curl -X POST "{{YOUR_PROJECT_URL}}/api/dzly-login-hook/hook-otp-login" \
+curl -X POST "{{YOUR_PROJECT_URL}}/api/ws-login-hook/hook-otp-login" \
   -H "Accept: application/json" \
   -d "request_id=12" \
   -d "serial_number=eyJpdiI6..."

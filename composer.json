@@ -1,5 +1,5 @@
 {
-  "name": "steps/ws-server-login-hook",
+  "name": "steps/ws-login-hook",
   "description": "ws Login Hook for Laravel",
   "type": "library",
   "license": "MIT",
