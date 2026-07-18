@@ -12,7 +12,7 @@ Add the following to your application's `composer.json`:
 "repositories": [
     {
         "type": "vcs",
-        "url": "https://github.com/steps-io/ws-server-login-hook.git"  
+        "url": "https://github.com/steps-io/ws-server-login-hook.git"
     }
 ]
 ```
@@ -26,7 +26,7 @@ composer require steps/ws-login-hook
 ### 3. Publish the config
 
 ```bash
-php artisan vendor:publish --provider="WsServerLoginHook\Providers\WsLoginHookServiceProvider" --tag=config
+php artisan vendor:publish --provider="Steps\WsLoginHook\Providers\WsLoginHookServiceProvider" --tag=config
 ```
 
 ### 4. Run migrations
@@ -47,11 +47,11 @@ WS_BASE_URL="https://ws.admin.octto.net"
 WS_API_TOKEN="your token"
 ```
 
-| Variable                  | Description                                               |
-| ------------------------- | --------------------------------------------------------- |
+| Variable                  | Description                                             |
+| ------------------------- | ------------------------------------------------------- |
 | `WHATSAPP_RECIVER_NUMBER` | Your ws WhatsApp receiver number (used by this package) |
-| `WS_BASE_URL`           | ws API base URL               |
-| `WS_API_TOKEN`          | Your ws API token          |
+| `WS_BASE_URL`             | ws API base URL                                         |
+| `WS_API_TOKEN`            | Your ws API token                                       |
 
 ### 6. Register the ws webhook
 
@@ -79,7 +79,7 @@ return [
 
 The key (`user`) is used in the OTP request URL: `/api/ws-login-hook/request-otp/{model}`.
 
-### 8. Implement the `WsServerLoginHook` contract
+### 8. Implement the `WsLoginHook` contract
 
 Each model listed in `supported_models` must implement `Steps\WsLoginHook\Contracts\WsLoginHook` and define `loggedInResponse`:
 
@@ -140,10 +140,10 @@ class User extends Authenticatable implements WsLoginHook
 
 ## Available endpoints
 
-| Method | URI                                        | Description                                                                 |
-| ------ | ------------------------------------------ | --------------------------------------------------------------------------- |
+| Method | URI                                      | Description                                                                 |
+| ------ | ---------------------------------------- | --------------------------------------------------------------------------- |
 | `POST` | `/api/ws-login-hook/request-otp/{model}` | Generate an OTP and WhatsApp deep link for the given model key              |
-| `ANY`  | `/api/ws-login-hook/ws-webhook`        | Inbound ws webhook (OTP verification)                                     |
+| `ANY`  | `/api/ws-login-hook/ws-webhook`          | Inbound ws webhook (OTP verification)                                       |
 | `POST` | `/api/ws-login-hook/hook-otp-login`      | Complete login after OTP is verified; calls `loggedInResponse` on the model |
 
 ### Request OTP
@@ -153,8 +153,8 @@ Generates (or refreshes) an OTP for the given model and returns a WhatsApp deep 
 - **URL:** `POST /api/ws-login-hook/request-otp/{model}`
 - **URL parameters:**
 
-| Parameter | Required | Description                                                                 |
-| --------- | -------- | --------------------------------------------------------------------------- |
+| Parameter | Required | Description                                                               |
+| --------- | -------- | ------------------------------------------------------------------------- |
 | `model`   | yes      | A key from `supported_models` in `config/ws-login-hook.php` (e.g. `user`) |
 
 - **Body parameters:**
@@ -188,14 +188,14 @@ curl -X POST "{{YOUR_PROJECT_URL}}/api/ws-login-hook/request-otp/user" \
 }
 ```
 
-| Field           | Description                                                          |
-| --------------- | -------------------------------------------------------------------- |
-| `request_id`    | ID of the OTP request; pass it to the login endpoint                 |
-| `is_expired`    | Whether the OTP is already expired                                   |
-| `expires_at`    | ISO 8601 expiry timestamp (5 minutes after creation/refresh)         |
-| `serial_number` | Session identifier; reuse it on subsequent calls and on login        |
-| `channel`       | Broadcast channel name to listen on for login status updates         |
-| `otp`           | The encrypted OTP embedded in the WhatsApp message                   |
+| Field           | Description                                                        |
+| --------------- | ------------------------------------------------------------------ |
+| `request_id`    | ID of the OTP request; pass it to the login endpoint               |
+| `is_expired`    | Whether the OTP is already expired                                 |
+| `expires_at`    | ISO 8601 expiry timestamp (5 minutes after creation/refresh)       |
+| `serial_number` | Session identifier; reuse it on subsequent calls and on login      |
+| `channel`       | Broadcast channel name to listen on for login status updates       |
+| `otp`           | The encrypted OTP embedded in the WhatsApp message                 |
 | `url`           | `wa.me` deep link the user opens to send the OTP to your ws number |
 
 After the user sends the message, ws calls the `ws-webhook` endpoint, which verifies the OTP and broadcasts an `OtpLoginStatusUpdated` event on `channel`.
@@ -207,10 +207,10 @@ Completes the login once the OTP has been verified via the webhook. Returns what
 - **URL:** `POST /api/ws-login-hook/hook-otp-login`
 - **Body parameters:**
 
-| Parameter       | Required | Description                                                                                    |
-| --------------- | -------- | ---------------------------------------------------------------------------------------------- |
+| Parameter       | Required | Description                                                                                  |
+| --------------- | -------- | -------------------------------------------------------------------------------------------- |
 | `request_id`    | yes      | The `request_id` returned by the request-otp endpoint (must exist in `ws_hook_otp_requests`) |
-| `serial_number` | yes      | The `serial_number` returned by the request-otp endpoint                                       |
+| `serial_number` | yes      | The `serial_number` returned by the request-otp endpoint                                     |
 
 - **Example request:**
 
@@ -222,7 +222,7 @@ curl -X POST "{{YOUR_PROJECT_URL}}/api/ws-login-hook/hook-otp-login" \
 ```
 
 - **Responses:**
-  - `200` - The `JsonResponse` from your model's `loggedInResponse($phoneData)` (see [Implement the `WsServerLoginHook` contract](#8-implement-the-WsServerLoginHook-contract)).
+  - `200` - The `JsonResponse` from your model's `loggedInResponse($phoneData)` (see [Implement the `WsLoginHook` contract](#8-implement-the-WsLoginHook-contract)).
   - `422` - `{"status": "error", "message": "Request not found"}` if the request/serial does not match.
   - `422` - `{"status": "error", "message": "Request is pending"}` if the OTP has not been verified yet.
   - `422` - `{"status": "error", "message": "OTP expired"}` if the OTP has expired.
@@ -230,4 +230,5 @@ curl -X POST "{{YOUR_PROJECT_URL}}/api/ws-login-hook/hook-otp-login" \
 ## License
 
 MIT
+
 # ws-server-login-hook
