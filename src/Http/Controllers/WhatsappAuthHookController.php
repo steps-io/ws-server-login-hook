@@ -21,16 +21,17 @@ class WhatsappAuthHookController extends Controller
     {
         $parsed = $this->whatsappAuthHandler->handleWsWebhook($request);
         $otpRequest = $this->whatsappAuthHandler->verifyOtp($parsed['message']);
+        
         if (! $otpRequest) {
             return response()->json(['status' => 'error', 'message' => 'Invalid OTP'], 422);
         }
-
+        
         if ($otpRequest->is_expired) {
             broadcast(new OtpLoginStatusUpdated($otpRequest->serial_number, 'failed', __('OTP expired')));
 
             return response()->json(['status' => 'error', 'message' => 'OTP expired'], 422);
         }
-
+        
         $handleMobileNumber = $this->whatsappAuthHandler->validatePhoneNumber($parsed['phone_number']);
 
         if (! $handleMobileNumber['success']) {
@@ -38,7 +39,7 @@ class WhatsappAuthHookController extends Controller
 
             return response()->json(['status' => 'error', 'message' => 'Invalid phone number'], 422);
         }
-
+        
         $otpRequest->update([
             'mobile' => $handleMobileNumber['phone_number'],
             'profile_name' => $parsed['profile_name'],

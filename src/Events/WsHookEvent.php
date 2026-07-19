@@ -1,9 +1,10 @@
 <?php
-namespace  Steps\WsLoginHook\Events;
+namespace Steps\WsLoginHook\Events;
 
-class WsHookEvent extends Event
+
+class WsHookEvent
 {
-    public function __construct(public $otpRequest,public $user)
+    public function __construct(public $otpRequest, public $user)
     {
         //
     }

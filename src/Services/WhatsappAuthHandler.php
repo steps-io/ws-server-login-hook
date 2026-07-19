@@ -179,14 +179,26 @@ class WhatsappAuthHandler
     static function sendWsMessage($message, $phone)
     {
         try {
-           
-        $client = new Client();
-        $body = ['phone' => $phone, 'message' => $message];
-        $request = new GuzzleRequest('POST', config('ws-login-hook.whatsapp_base_url').'/api/send', [], json_encode($body));
-        $res = $client->sendAsync($request)->wait();
-        return json_decode($res->getBody(), true);
+
+            $client = new Client();
+            $body = ['phone' => $phone, 'message' => $message];
+            logger('sendWsMessage body', [$body]);
+            $headers = [
+                'Authorization' => 'Bearer '.config('ws-login-hook.ws_api_token'),
+                'Content-Type' => 'application/json',
+            ];
+            $request = new GuzzleRequest(
+                'POST',
+                config('ws-login-hook.whatsapp_base_url').'/api/send',
+                $headers,
+                json_encode($body)
+            );
+
+            $res = $client->sendAsync($request)->wait();
+            return json_decode($res->getBody(), true);
 
         } catch (\Exception $e) {
+            logger('sendWsMessage error', [$e->getMessage()]);
             return ["Result" => "false", "Message" => $e->getMessage()];
         }
     }
